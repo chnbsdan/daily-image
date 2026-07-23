@@ -1,231 +1,88 @@
-import os
-import requests
-from PIL import Image
-from io import BytesIO
-from datetime import datetime, timedelta
-import json
-import logging
+name: Daily Get Bing Image
 
-# 日志配置
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+on:
+  schedule:
+    - cron: "0 4 * * *"
+  workflow_dispatch:
 
-# 路径配置
-STATIC_FOLDER = "static"
-PICTURE_FOLDER = os.path.join(STATIC_FOLDER, "picture")
-DAILY_IMAGE_PATH = os.path.join(STATIC_FOLDER, "daily.webp")
-INDEX_PATH = os.path.join(PICTURE_FOLDER, "index.json")
+env:
+  TZ: Asia/Shanghai
 
-# 确保文件夹存在
-os.makedirs(PICTURE_FOLDER, exist_ok=True)
-
-def fetch_bing_images(n=8):
-    """获取最新的Bing壁纸信息（单次最多8张）"""
-    try:
-        url = f"https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n={n}&uhd=1&mkt=zh-CN"
-        resp = requests.get(url)
-        resp.raise_for_status()
-        data = resp.json()
-
-        images = []
-        for image in data["images"]:
-            date = datetime.strptime(image["enddate"], "%Y%m%d").strftime("%Y-%m-%d")
-            logging.info(f"获取到图片: {date}")
-            urlbase = image["urlbase"]
-            high_res_url = f"https://www.bing.com{urlbase}_UHD.jpg"
-            fallback_url = f"https://www.bing.com{urlbase}_1920x1080.jpg"
-
-            test_resp = requests.head(high_res_url)
-            image_url = high_res_url if test_resp.status_code == 200 else fallback_url
-
-            images.append({
-                "date": date,
-                "url": image_url,
-                "copyright": image.get("copyright", ""),
-                "urlbase": urlbase
-            })
-
-        return images
-    except Exception as e:
-        logging.error(f"获取 Bing 图片信息失败: {e}")
-        return []
-
-def fetch_all_bing_images(total_days=30):
-    """分批获取 Bing 图片，每次8张，直到凑够 total_days 天"""
-    all_images = []
-    offset = 0
+jobs:
+  get_bing_image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: write
     
-    logging.info(f"开始分批获取 {total_days} 天的图片...")
-    
-    while len(all_images) < total_days:
-        try:
-            # 每次获取8张，offset 表示从第几天开始
-            url = f"https://www.bing.com/HPImageArchive.aspx?format=js&idx={offset}&n=8&uhd=1&mkt=zh-CN"
-            resp = requests.get(url)
-            resp.raise_for_status()
-            data = resp.json()
-            
-            if not data["images"]:
-                logging.info("没有更多图片了")
-                break
-                
-            images = []
-            for image in data["images"]:
-                date = datetime.strptime(image["enddate"], "%Y%m%d").strftime("%Y-%m-%d")
-                urlbase = image["urlbase"]
-                high_res_url = f"https://www.bing.com{urlbase}_UHD.jpg"
-                fallback_url = f"https://www.bing.com{urlbase}_1920x1080.jpg"
-                
-                test_resp = requests.head(high_res_url)
-                image_url = high_res_url if test_resp.status_code == 200 else fallback_url
-                
-                images.append({
-                    "date": date,
-                    "url": image_url,
-                    "copyright": image.get("copyright", ""),
-                    "urlbase": urlbase
-                })
-            
-            all_images.extend(images)
-            logging.info(f"已获取 {len(all_images)} 张图片")
-            offset += 8
-            
-            if len(images) < 8:
-                logging.info("返回不足8张，已到最后")
-                break
-                
-        except Exception as e:
-            logging.error(f"获取 Bing 图片失败 (offset={offset}): {e}")
-            break
-    
-    logging.info(f"共获取 {len(all_images)} 张图片")
-    return all_images
+    steps:
+    - name: Pull latest repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
-def download_image(url):
-    """下载图片并返回PIL Image对象"""
-    try:
-        resp = requests.get(url)
-        resp.raise_for_status()
-        return Image.open(BytesIO(resp.content)).convert("RGB")
-    except Exception as e:
-        logging.error(f"下载图片失败: {e}")
-        return None
+    - name: Cache pip packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
 
-def load_existing_index():
-    """加载现有的index.json文件"""
-    if not os.path.exists(INDEX_PATH):
-        return []
-    
-    try:
-        with open(INDEX_PATH, "r", encoding="utf-8") as f:
-            logging.info("加载现有index.json成功")
-            return json.load(f)
-    except Exception as e:
-        logging.error(f"加载现有index.json失败: {e}")
-        return []
+    - name: Install python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
 
-def save_image(img, filepath):
-    """保存图片到指定路径"""
-    try:
-        max_width, max_height = 2560, 1600
-        img.thumbnail((max_width, max_height))
-        img.save(filepath, "WEBP", quality=80, method=6)
-        logging.info(f"保存图片 {filepath}")
-        return True
-    except Exception as e:
-        logging.error(f"保存图片失败 {filepath}: {e}")
-        return False
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install Pillow requests
 
-def merge_and_update_images(new_images, existing_index):
-    """合并新图片和现有索引，并更新文件"""
-    today_str = datetime.now().strftime("%Y-%m-%d")
-    logging.info(f"今天的日期: {today_str}")
-    updated_index = []
-    existing_dates = {item["date"] for item in existing_index}
-    
-    for img_info in new_images:
-        date = img_info["date"]
-        logging.info(f"处理图片: {date}")
-        if date in existing_dates:
-            logging.info(f"图片 {date} 已存在，跳过")
-            continue
-            
-        filename = f"{date}.webp"
-        filepath = os.path.join(PICTURE_FOLDER, filename)
-        
-        img = download_image(img_info["url"])
-        if img is None:
-            continue
-            
-        if not save_image(img, filepath):
-            continue
-            
-        if date == today_str:
-            logging.info("保存今天的图片为 daily.webp / daily.jpeg / original.jpeg")
-            save_image(img, os.path.join(STATIC_FOLDER, "daily.webp"))
-            img.save(os.path.join(STATIC_FOLDER, "daily.jpeg"), "JPEG", quality=95, optimize=True)
-            img.save(os.path.join(STATIC_FOLDER, "original.jpeg"), "JPEG", quality=100)
-            logging.info("保存了 daily.webp / daily.jpeg / original.jpeg")
-            
-        updated_index.append({
-            "filename": filename,
-            "date": date,
-            "path": f"/picture/{filename}",
-            "copyright": img_info.get("copyright", ""),
-            "url": img_info.get("url", "")
-        })
-    
-    combined_index = existing_index + updated_index
-    combined_index.sort(key=lambda x: x["date"], reverse=True)
-    
-    thirty_days_ago = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
-    filtered_index = []
-    removed_files = set()
-    
-    for item in combined_index:
-        if item["date"] > thirty_days_ago:
-            filtered_index.append(item)
-        else:
-            removed_files.add(os.path.join(PICTURE_FOLDER, item["filename"]))
-            logging.info(f"图片 {item['date']} 超过30天，标记为删除")
-    
-    for filepath in removed_files:
-        try:
-            if os.path.exists(filepath):
-                os.remove(filepath)
-                logging.info(f"删除旧图片: {filepath}")
-        except Exception as e:
-            logging.error(f"删除旧图片失败 {filepath}: {e}")
-    
-    return filtered_index
+    - name: Fetch page branch content into static/
+      run: |
+        if git ls-remote --exit-code --heads origin page; then
+          git fetch origin page
+          rm -rf static
+          mkdir static
+          git --work-tree=static checkout origin/page -- .
+        else
+          echo "No 'page' branch exists, skipping fetch."
+          mkdir -p static
+        fi
+        ls
 
-def update_index(index_list):
-    """更新index.json文件"""
-    try:
-        with open(INDEX_PATH, "w", encoding="utf-8") as f:
-            json.dump(index_list, f, ensure_ascii=False, indent=2)
-        logging.info(f"已更新 index.json，共 {len(index_list)} 项")
-    except Exception as e:
-        logging.error(f"更新index.json失败: {e}")
+    - name: Run Python script to get Bing image
+      run: python main.py
 
-def main():
-    logging.info("开始获取 Bing 图片...")
-    existing_index = load_existing_index()
-    
-    # 如果索引为空（首次运行），获取30天；否则只获取最新的
-    if not existing_index:
-        logging.info("首次运行，获取过去30天的图片...")
-        new_images = fetch_all_bing_images(30)
-    else:
-        logging.info("日常更新，只获取今天的图片...")
-        new_images = fetch_bing_images(1)  # 只获取今天的一张
-    
-    if not new_images:
-        logging.error("未获取到任何新图像信息")
-        return
+    - name: Configure git
+      run: |
+        git config --global user.email "actions@github.com"
+        git config --global user.name "GitHub Actions"
 
-    updated_index = merge_and_update_images(new_images, existing_index)
-    update_index(updated_index)
-    logging.info("更新完成！")
+    - name: Commit and push to page branch
+      run: |
+        cp -r ./page/. static/ 2>/dev/null || true
+        cd static
+        git init
+        git checkout -b page 2>/dev/null || git checkout page
+        git add .
+        git commit -m "⏱️GitHub Action每日定时更新 $(date +'%Y-%m-%d %H:%M')" || echo "No changes to commit"
+        git remote add origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git 2>/dev/null || true
+        git push --force --set-upstream origin page
 
-if __name__ == "__main__":
-    main()
+    - name: Delete Workflow Runs
+      uses: Mattraks/delete-workflow-runs@v2
+      with:
+        retain_days: 30
+        keep_minimum_runs: 6
+
+  keepalive-workflow:
+    name: Keepalive Workflow
+    if: ${{ always() }}
+    needs: get_bing_image
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - uses: liskin/gh-workflow-keepalive@v1
