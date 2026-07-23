@@ -169,7 +169,7 @@ def update_index(index_list):
 def main():
     logging.info("开始获取 Bing 图片...")
     existing_index = load_existing_index()
-    new_images = fetch_bing_images(8)
+    new_images = fetch_bing_images(30)
 
     if not new_images:
         logging.error("未获取到任何新图像信息")
