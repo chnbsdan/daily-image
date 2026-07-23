@@ -12,7 +12,9 @@ env:
 jobs:
   get_bing_image:
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: write  # 🔥 添加这行，允许推送代码
+    
     steps:
     - name: Pull latest repository
       uses: actions/checkout@v4
@@ -64,7 +66,9 @@ jobs:
         git checkout -b page
         git add .
         git commit -m "⏱️GitHub Action每日定时更新"
-        git push --force https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git page
+        # 🔥 修改这行，明确使用 GITHUB_TOKEN
+        git remote add origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+        git push --force --set-upstream origin page
 
     - name: Delete Workflow Runs
       uses: Mattraks/delete-workflow-runs@v2
