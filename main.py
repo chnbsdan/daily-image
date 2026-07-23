@@ -12,65 +12,23 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 # 路径配置
 STATIC_FOLDER = "static"
 PICTURE_FOLDER = os.path.join(STATIC_FOLDER, "picture")
-DAILY_IMAGE_PATH = os.path.join(STATIC_FOLDER, "daily.webp")
 INDEX_PATH = os.path.join(PICTURE_FOLDER, "index.json")
 
 # 确保文件夹存在
 os.makedirs(PICTURE_FOLDER, exist_ok=True)
 
-def fetch_bing_images(n=8):
-    """获取最新的Bing壁纸信息（单次最多8张）"""
+def download_bing_image(date_str):
+    """根据日期下载指定日期的必应壁纸"""
     try:
-        url = f"https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n={n}&uhd=1&mkt=zh-CN"
+        # 构造日期参数
+        url = f"https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=8&uhd=1&mkt=zh-CN"
         resp = requests.get(url)
         resp.raise_for_status()
         data = resp.json()
-
-        images = []
+        
+        # 查找匹配日期的图片
         for image in data["images"]:
-            date = datetime.strptime(image["enddate"], "%Y%m%d").strftime("%Y-%m-%d")
-            logging.info(f"获取到图片: {date}")
-            urlbase = image["urlbase"]
-            high_res_url = f"https://www.bing.com{urlbase}_UHD.jpg"
-            fallback_url = f"https://www.bing.com{urlbase}_1920x1080.jpg"
-
-            test_resp = requests.head(high_res_url)
-            image_url = high_res_url if test_resp.status_code == 200 else fallback_url
-
-            images.append({
-                "date": date,
-                "url": image_url,
-                "copyright": image.get("copyright", ""),
-                "urlbase": urlbase
-            })
-
-        return images
-    except Exception as e:
-        logging.error(f"获取 Bing 图片信息失败: {e}")
-        return []
-
-def fetch_all_bing_images(total_days=30):
-    """分批获取 Bing 图片，每次8张，直到凑够 total_days 天"""
-    all_images = []
-    offset = 0
-    
-    logging.info(f"开始分批获取 {total_days} 天的图片...")
-    
-    while len(all_images) < total_days:
-        try:
-            # 每次获取8张，offset 表示从第几天开始
-            url = f"https://www.bing.com/HPImageArchive.aspx?format=js&idx={offset}&n=8&uhd=1&mkt=zh-CN"
-            resp = requests.get(url)
-            resp.raise_for_status()
-            data = resp.json()
-            
-            if not data["images"]:
-                logging.info("没有更多图片了")
-                break
-                
-            images = []
-            for image in data["images"]:
-                date = datetime.strptime(image["enddate"], "%Y%m%d").strftime("%Y-%m-%d")
+            if image["enddate"] == date_str.replace("-", ""):
                 urlbase = image["urlbase"]
                 high_res_url = f"https://www.bing.com{urlbase}_UHD.jpg"
                 fallback_url = f"https://www.bing.com{urlbase}_1920x1080.jpg"
@@ -78,27 +36,36 @@ def fetch_all_bing_images(total_days=30):
                 test_resp = requests.head(high_res_url)
                 image_url = high_res_url if test_resp.status_code == 200 else fallback_url
                 
-                images.append({
-                    "date": date,
+                return {
+                    "date": date_str,
                     "url": image_url,
                     "copyright": image.get("copyright", ""),
                     "urlbase": urlbase
-                })
-            
-            all_images.extend(images)
-            logging.info(f"已获取 {len(all_images)} 张图片")
-            offset += 8
-            
-            if len(images) < 8:
-                logging.info("返回不足8张，已到最后")
-                break
-                
-        except Exception as e:
-            logging.error(f"获取 Bing 图片失败 (offset={offset}): {e}")
-            break
+                }
+        return None
+    except Exception as e:
+        logging.error(f"下载 {date_str} 图片失败: {e}")
+        return None
+
+def fetch_images_for_days(days=30):
+    """获取过去 N 天的图片"""
+    images = []
+    today = datetime.now()
     
-    logging.info(f"共获取 {len(all_images)} 张图片")
-    return all_images
+    for i in range(days):
+        date = today - timedelta(days=i)
+        date_str = date.strftime("%Y-%m-%d")
+        logging.info(f"正在获取 {date_str} 的图片...")
+        
+        # 尝试获取图片
+        img_info = download_bing_image(date_str)
+        if img_info:
+            images.append(img_info)
+            logging.info(f"成功获取 {date_str} 的图片")
+        else:
+            logging.warning(f"未找到 {date_str} 的图片")
+    
+    return images
 
 def download_image(url):
     """下载图片并返回PIL Image对象"""
@@ -214,10 +181,16 @@ def main():
     # 如果索引为空（首次运行），获取30天；否则只获取最新的
     if not existing_index:
         logging.info("首次运行，获取过去30天的图片...")
-        new_images = fetch_all_bing_images(30)
+        # 直接获取过去30天的图片
+        new_images = fetch_images_for_days(30)
     else:
         logging.info("日常更新，只获取今天的图片...")
-        new_images = fetch_bing_images(1)  # 只获取今天的一张
+        # 只获取今天的
+        today = datetime.now().strftime("%Y-%m-%d")
+        new_images = []
+        img_info = download_bing_image(today)
+        if img_info:
+            new_images.append(img_info)
     
     if not new_images:
         logging.error("未获取到任何新图像信息")
