@@ -19,7 +19,7 @@ INDEX_PATH = os.path.join(PICTURE_FOLDER, "index.json")
 os.makedirs(PICTURE_FOLDER, exist_ok=True)
 
 def fetch_bing_images(n=8):
-    """获取最新的Bing壁纸信息"""
+    """获取最新的Bing壁纸信息（单次最多8张）"""
     try:
         url = f"https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n={n}&uhd=1&mkt=zh-CN"
         resp = requests.get(url)
@@ -30,7 +30,6 @@ def fetch_bing_images(n=8):
         for image in data["images"]:
             date = datetime.strptime(image["enddate"], "%Y%m%d").strftime("%Y-%m-%d")
             logging.info(f"获取到图片: {date}")
-            # 生成高分辨率和备用URL
             urlbase = image["urlbase"]
             high_res_url = f"https://www.bing.com{urlbase}_UHD.jpg"
             fallback_url = f"https://www.bing.com{urlbase}_1920x1080.jpg"
@@ -49,6 +48,57 @@ def fetch_bing_images(n=8):
     except Exception as e:
         logging.error(f"获取 Bing 图片信息失败: {e}")
         return []
+
+def fetch_all_bing_images(total_days=30):
+    """分批获取 Bing 图片，每次8张，直到凑够 total_days 天"""
+    all_images = []
+    offset = 0
+    
+    logging.info(f"开始分批获取 {total_days} 天的图片...")
+    
+    while len(all_images) < total_days:
+        try:
+            # 每次获取8张，offset 表示从第几天开始
+            url = f"https://www.bing.com/HPImageArchive.aspx?format=js&idx={offset}&n=8&uhd=1&mkt=zh-CN"
+            resp = requests.get(url)
+            resp.raise_for_status()
+            data = resp.json()
+            
+            if not data["images"]:
+                logging.info("没有更多图片了")
+                break
+                
+            images = []
+            for image in data["images"]:
+                date = datetime.strptime(image["enddate"], "%Y%m%d").strftime("%Y-%m-%d")
+                urlbase = image["urlbase"]
+                high_res_url = f"https://www.bing.com{urlbase}_UHD.jpg"
+                fallback_url = f"https://www.bing.com{urlbase}_1920x1080.jpg"
+                
+                test_resp = requests.head(high_res_url)
+                image_url = high_res_url if test_resp.status_code == 200 else fallback_url
+                
+                images.append({
+                    "date": date,
+                    "url": image_url,
+                    "copyright": image.get("copyright", ""),
+                    "urlbase": urlbase
+                })
+            
+            all_images.extend(images)
+            logging.info(f"已获取 {len(all_images)} 张图片")
+            offset += 8
+            
+            if len(images) < 8:
+                logging.info("返回不足8张，已到最后")
+                break
+                
+        except Exception as e:
+            logging.error(f"获取 Bing 图片失败 (offset={offset}): {e}")
+            break
+    
+    logging.info(f"共获取 {len(all_images)} 张图片")
+    return all_images
 
 def download_image(url):
     """下载图片并返回PIL Image对象"""
@@ -76,7 +126,6 @@ def load_existing_index():
 def save_image(img, filepath):
     """保存图片到指定路径"""
     try:
-        # 限制最大尺寸
         max_width, max_height = 2560, 1600
         img.thumbnail((max_width, max_height))
         img.save(filepath, "WEBP", quality=80, method=6)
@@ -93,13 +142,12 @@ def merge_and_update_images(new_images, existing_index):
     updated_index = []
     existing_dates = {item["date"] for item in existing_index}
     
-    # 处理新图片
     for img_info in new_images:
         date = img_info["date"]
         logging.info(f"处理图片: {date}")
         if date in existing_dates:
             logging.info(f"图片 {date} 已存在，跳过")
-            continue  # 已存在的图片跳过
+            continue
             
         filename = f"{date}.webp"
         filepath = os.path.join(PICTURE_FOLDER, filename)
@@ -111,9 +159,8 @@ def merge_and_update_images(new_images, existing_index):
         if not save_image(img, filepath):
             continue
             
-        # 如果是今天的图，保存额外几份
         if date == today_str:
-            logging.info("保存今天的图片为 daily.webp / daily.jpeg / original.jpeg , 今日时间: " + date)
+            logging.info("保存今天的图片为 daily.webp / daily.jpeg / original.jpeg")
             save_image(img, os.path.join(STATIC_FOLDER, "daily.webp"))
             img.save(os.path.join(STATIC_FOLDER, "daily.jpeg"), "JPEG", quality=95, optimize=True)
             img.save(os.path.join(STATIC_FOLDER, "original.jpeg"), "JPEG", quality=100)
@@ -127,13 +174,9 @@ def merge_and_update_images(new_images, existing_index):
             "url": img_info.get("url", "")
         })
     
-    # 合并现有和新数据
     combined_index = existing_index + updated_index
-    
-    # 按日期排序(最新的在前面)
     combined_index.sort(key=lambda x: x["date"], reverse=True)
     
-    # 保留最近30天的数据
     thirty_days_ago = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
     filtered_index = []
     removed_files = set()
@@ -142,11 +185,9 @@ def merge_and_update_images(new_images, existing_index):
         if item["date"] > thirty_days_ago:
             filtered_index.append(item)
         else:
-            # 记录要删除的文件
             removed_files.add(os.path.join(PICTURE_FOLDER, item["filename"]))
             logging.info(f"图片 {item['date']} 超过30天，标记为删除")
     
-    # 删除超过30天的旧图片
     for filepath in removed_files:
         try:
             if os.path.exists(filepath):
@@ -169,14 +210,22 @@ def update_index(index_list):
 def main():
     logging.info("开始获取 Bing 图片...")
     existing_index = load_existing_index()
-    new_images = fetch_bing_images(30)
-
+    
+    # 如果索引为空（首次运行），获取30天；否则只获取最新的
+    if not existing_index:
+        logging.info("首次运行，获取过去30天的图片...")
+        new_images = fetch_all_bing_images(30)
+    else:
+        logging.info("日常更新，只获取今天的图片...")
+        new_images = fetch_bing_images(1)  # 只获取今天的一张
+    
     if not new_images:
         logging.error("未获取到任何新图像信息")
         return
 
     updated_index = merge_and_update_images(new_images, existing_index)
     update_index(updated_index)
+    logging.info("更新完成！")
 
 if __name__ == "__main__":
     main()
