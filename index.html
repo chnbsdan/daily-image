@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>每日一图 - 留存世间奇景</title>
+    <link rel="icon" href="/favicon.ico" type="image/x-icon" />
+    <!-- Font Awesome 6 免费图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <link
+      rel="stylesheet"
+      href="https://fontsapi.zeoseven.com/488/main/result.css"
+    />
+    <style>
+      /* 基础变量与暗色主题（默认） */
+      :root {
+        --bg-body: #121212;
+        --bg-hero-overlay: linear-gradient(to top, rgba(0,0,0,0.8), transparent 40%);
+        --bg-yiyan: #1e1e1e;
+        --bg-history: #1e1e1e;
+        --bg-card: #000;
+        --bg-modal: rgba(30, 30, 30, 0.9);
+        --text-primary: #e0e0e0;
+        --text-secondary: #fff;
+        --text-muted: #aaa;
+        --border-light: rgba(255,255,255,0.1);
+        --shadow-card: 0 4px 8px rgba(0,0,0,0.3);
+        --shadow-card-hover: 0 8px 16px rgba(0,0,0,0.4);
+        --blur-bg: rgba(30, 30, 30, 0.8);
+        --menu-hover-border: #fff;
+      }
+
+      /* 亮色主题 */
+      [data-theme="light"] {
+        --bg-body: #f5f5f5;
+        --bg-hero-overlay: linear-gradient(to top, rgba(255,255,255,0.85), transparent 40%);
+        --bg-yiyan: #ffffff;
+        --bg-history: #ffffff;
+        --bg-card: #ffffff;
+        --bg-modal: rgba(255, 255, 255, 0.95);
+        --text-primary: #222222;
+        --text-secondary: #111111;
+        --text-muted: #555555;
+        --border-light: rgba(0,0,0,0.1);
+        --shadow-card: 0 4px 8px rgba(0,0,0,0.1);
+        --shadow-card-hover: 0 8px 16px rgba(0,0,0,0.2);
+        --blur-bg: rgba(255, 255, 255, 0.8);
+        --menu-hover-border: #333;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: "STDongGuanTi", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        color: var(--text-primary);
+        background-color: var(--bg-body);
+        line-height: 1.6;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        transition: background-color 0.3s, color 0.3s;
+      }
+
+      /* 悬浮菜单 */
+      .floating-menu {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        z-index: 1001;
+        display: flex;
+        background: var(--blur-bg);
+        backdrop-filter: blur(10px);
+        border-radius: 30px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        transition: all 0.3s ease;
+        overflow: hidden;
+      }
+      .floating-menu::after {
+        content: "";
+        width: 15px;
+        border-radius: 30px;
+      }
+    
+      .menu-item {
+        display: flex;
+        align-items: center;
+        padding: 5px 10px;
+        color: var(--text-primary);
+        text-decoration: none;
+        font-size: 0.9rem;
+        transition: color 0.2s, border-color 0.2s;
+      }
+
+      .menu-item:hover {
+        color: var(--text-secondary);
+        border-bottom: 1px solid var(--menu-hover-border);
+      }
+      .menu-icon {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+      }
+      @media (max-width: 500px) {
+        .floating-menu {
+          display: none;
+        }
+      }
+
+      /* 右上角主题切换按钮 */
+      .theme-toggle {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1002;
+        background: var(--blur-bg);
+        backdrop-filter: blur(10px);
+        border: none;
+        border-radius: 50%;
+        width: 44px;
+        height: 44px;
+        font-size: 1.3rem;
+        color: var(--text-primary);
+        cursor: pointer;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        transition: background 0.3s, color 0.3s, transform 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .theme-toggle:hover {
+        transform: scale(1.05);
+        color: var(--text-secondary);
+      }
+      @media (max-width: 500px) {
+        .theme-toggle {
+          top: 15px;
+          right: 15px;
+          width: 40px;
+          height: 40px;
+          font-size: 1.1rem;
+        }
+      }
+
+      /* Hero Section */
+      .hero {
+        position: relative;
+        width: 100%;
+        height: 100vh;
+        overflow: hidden;
+      }
+      .hero img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .hero:hover img {
+        transform: scale(1.02);
+      }
+      .hero .overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: var(--bg-hero-overlay);
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        padding: 40px;
+        color: var(--text-secondary);
+        transition: background 0.3s;
+      }
+      .hero .center-text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        width: 100%;
+      }
+      .hero .center-text h1 {
+        font-size: 3rem;
+        font-weight: 300;
+        margin-bottom: 15px;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+      }
+      .hero .center-text p {
+        font-size: 1.2rem;
+        max-width: 600px;
+        margin: 0 auto;
+        text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
+      }
+      .hero .overlay .date {
+        font-size: 2rem;
+        margin-bottom: 10px;
+        font-weight: 300;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+      }
+      .hero .overlay .copy {
+        font-size: 1.2rem;
+        max-width: 1000px;
+        font-weight: 300;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+      }
+
+      /* 一言样式 */
+      .yiyan {
+        background: var(--bg-yiyan);
+        color: var(--text-primary);
+        padding: 40px 0 20px 0;
+        text-align: center;
+        font-size: 1.2rem;
+        line-height: 1.8;
+        border-top: 1px solid var(--border-light);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        position: relative;
+        transition: background 0.3s, color 0.3s, border-color 0.3s;
+      }
+      
+      .yiyan-content {
+        max-width: 800px;
+        margin: 0 auto;
+        font-weight: 300;
+        position: relative;
+        padding: 20px 20px;
+        margin: 0 20px;
+      }
+
+      .yiyan-content::before,
+      .yiyan-content::after {
+        content: '';
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        border-color: var(--border-light);
+        border-style: solid;
+      }
+
+      .yiyan-content::before {
+        top: 0;
+        left: 0;
+        border-width: 2px 0 0 2px;
+      }
+
+      .yiyan-content::after {
+        bottom: 0;
+        right: 0;
+        border-width: 0 2px 2px 0;
+      }
+      
+      .yiyan-loading {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 2px solid var(--border-light);
+        border-radius: 50%;
+        border-top-color: var(--text-secondary);
+        animation: spin 1s ease-in-out infinite;
+      }
+      
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+
+      /* History Grid */
+      .history-container {
+        padding: 40px 20px;
+        background: var(--bg-history);
+        flex: 1;
+        transition: background 0.3s;
+      }
+      .history {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        margin: 0 auto;
+        max-width: 1200px;
+      }
+
+      @media (max-width: 1200px) {
+        .history {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
+      @media (max-width: 768px) {
+        .history {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .img-loading {
+        filter: blur(20px);
+        opacity: 0;
+        transform: scale(1.1);
+        transition: filter 0.8s ease, opacity 0.8s ease, transform 0.8s ease;
+        background: #2d2d2d;
+      }
+      .img-loading.img-loaded {
+        filter: blur(0);
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      .card {
+        position: relative;
+        border-radius: 8px;
+        overflow: hidden;
+        background: var(--bg-card);
+        box-shadow: var(--shadow-card);
+        transition: box-shadow 0.3s, transform 0.3s, background 0.3s;
+        cursor: pointer;
+      }
+      .card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-card-hover);
+      }
+      .card img {
+        width: 100%;
+        height: 250px;
+        object-fit: cover;
+        display: block;
+        transition: transform 0.5s ease;
+      }
+      .card:hover img {
+        transform: scale(1.05);
+      }
+      .card .date-label {
+        position: absolute;
+        bottom: 15px;
+        left: 15px;
+        background: rgba(0, 0, 0, 0.7);
+        color: #fff;
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        transition: all 0.3s ease;
+      }
+      .card .copy-text {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        padding: 15px;
+        background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
+        color: #fff;
+        font-size: 0.9rem;
+        text-align: center;
+        opacity: 0;
+        transform: translateY(20px);
+        transition: all 0.3s ease;
+      }
+      .card:hover .date-label {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      .card:hover .copy-text {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      /* ===== 重构后的 Modal ===== */
+      .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1000;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease, background 0.3s ease, backdrop-filter 0.3s ease;
+        background: rgba(0, 0, 0, 0);
+      }
+      .modal.active {
+        display: flex;
+        opacity: 1;
+        visibility: visible;
+        background: var(--bg-modal);
+        backdrop-filter: blur(10px);
+      }
+
+      .modal-content {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        max-width: 95vw;
+        max-height: 95vh;
+        transform: scale(0.95);
+        transition: transform 0.3s ease, opacity 0.3s ease;
+        opacity: 0;
+      }
+      .modal.active .modal-content {
+        transform: scale(1);
+        opacity: 1;
+      }
+
+      /* 图片直接显示，没有容器包裹 */
+      .modal-img {
+        display: block;
+        max-width: 90vw;
+        max-height: 85vh;
+        width: auto;
+        height: auto;
+        object-fit: contain;
+        border-radius: 4px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+        user-select: none;
+        -webkit-user-drag: none;
+        transition: transform 0.1s ease;
+        transform-origin: center center;
+        cursor: grab;
+      }
+      .modal-img:active {
+        cursor: grabbing;
+      }
+
+      /* ===== 关闭按钮 - 左上角 ===== */
+      .modal-close {
+        position: fixed;
+        top: 24px;
+        left: 24px;
+        z-index: 1010;
+        width: 44px;
+        height: 44px;
+        border: none;
+        border-radius: 50%;
+        background: rgba(0, 0, 0, 0.55);
+        backdrop-filter: blur(8px);
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 1.4rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.25s ease;
+        opacity: 0;
+        transform: scale(0.85);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      }
+      .modal.active .modal-close {
+        opacity: 1;
+        transform: scale(1);
+      }
+      .modal-close:hover {
+        background: rgba(200, 40, 40, 0.8);
+        color: #fff;
+        transform: scale(1.08) rotate(90deg);
+        box-shadow: 0 4px 20px rgba(200, 40, 40, 0.4);
+      }
+      .modal-close:active {
+        transform: scale(0.92);
+      }
+
+      /* 左右切换箭头 */
+      .modal-nav {
+        position: fixed;
+        top: 50%;
+        transform: translateY(-50%);
+        background: rgba(0,0,0,0.5);
+        color: #fff;
+        border: none;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        font-size: 1.8rem;
+        cursor: pointer;
+        z-index: 1010;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.3s, transform 0.2s;
+        backdrop-filter: blur(4px);
+        opacity: 0.7;
+      }
+      .modal-nav:hover {
+        background: rgba(0,0,0,0.8);
+        opacity: 1;
+        transform: translateY(-50%) scale(1.05);
+      }
+      .modal-nav-left {
+        left: 20px;
+      }
+      .modal-nav-right {
+        right: 20px;
+      }
+
+      /* 缩放提示 */
+      .zoom-hint {
+        position: fixed;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: rgba(255,255,255,0.6);
+        font-size: 0.9rem;
+        background: rgba(0,0,0,0.5);
+        padding: 6px 18px;
+        border-radius: 30px;
+        backdrop-filter: blur(4px);
+        z-index: 1010;
+        pointer-events: none;
+        transition: opacity 0.5s;
+        opacity: 0;
+      }
+      .modal.active .zoom-hint {
+        opacity: 1;
+      }
+
+      /* 图片标题（底部淡入） */
+      .modal-caption {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: rgba(255,255,255,0.8);
+        font-size: 1rem;
+        background: rgba(0,0,0,0.4);
+        padding: 8px 20px;
+        border-radius: 30px;
+        backdrop-filter: blur(4px);
+        z-index: 1010;
+        pointer-events: none;
+        text-align: center;
+        max-width: 80vw;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        opacity: 0;
+        transition: opacity 0.5s ease 0.3s;
+      }
+      .modal.active .modal-caption {
+        opacity: 1;
+      }
+
+      @media (max-width: 768px) {
+        .modal-nav {
+          width: 40px;
+          height: 40px;
+          font-size: 1.2rem;
+        }
+        .modal-nav-left { left: 8px; }
+        .modal-nav-right { right: 8px; }
+        .modal-close {
+          top: 16px;
+          left: 16px;
+          width: 38px;
+          height: 38px;
+          font-size: 1.2rem;
+        }
+        .zoom-hint { font-size: 0.7rem; padding: 4px 12px; bottom: 15px; }
+        .modal-caption { bottom: 60px; font-size: 0.8rem; padding: 4px 14px; max-width: 90vw; white-space: normal; }
+        .modal-img { max-width: 95vw; max-height: 80vh; }
+      }
+
+      /* 页脚 */
+      footer {
+        background: var(--bg-yiyan);
+        color: var(--text-muted);
+        padding: 30px 15px;
+        text-align: center;
+        font-size: 0.9rem;
+        transition: background 0.3s, color 0.3s;
+      }
+      footer a {
+        color: var(--text-primary);
+        text-decoration: none;
+        transition: color 0.2s ease;
+      }
+      footer a:hover {
+        color: var(--text-secondary);
+        text-decoration: underline;
+      }
+      footer div {
+        margin-bottom: 10px;
+      }
+      #vercount_value_site_pv,
+      #vercount_value_site_uv {
+        font-weight: bold;
+        color: var(--text-primary);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 悬浮菜单 -->
+    <nav class="floating-menu">
+      <a href="/" style="display: flex; align-items: center; margin: 0 5px 0 5px">
+        <img src="favicon.ico" alt="Icon" class="menu-icon" />
+      </a>
+      <a href="https://aoso.hangdn.com/" class="menu-item" target="_blank">站长博客</a>
+      <a href="https://aoso.hangdn.com/" class="menu-item" target="_blank">个人主页</a>
+      <a href="/api" class="menu-item" target="_blank">接口文档</a>
+      <a href="https://github.com/chnbsdan/daily-image" class="menu-item" target="_blank">项目地址</a>
+    </nav>
+
+    <!-- 右上角主题切换按钮 -->
+    <button class="theme-toggle" id="themeToggle" aria-label="切换明暗主题">
+      <i class="fas fa-moon"></i>
+    </button>
+
+    <!-- Hero 区域 -->
+    <div class="hero">
+      <img
+        id="hero-img" 
+        class="img-loading" 
+        src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMmQyZDJkIi8+PC9zdmc+"
+        alt="Today's Bing Wallpaper"
+      />
+      <div class="overlay">
+        <div class="center-text">
+          <h1>Bing每日一图</h1>
+          <p>腾讯EO强力支持，实现每日一图接口，保存最近30天内的bing壁纸</p>
+          <p>由清羽飞扬进行维护，每日更新，每日精彩</p>
+        </div>
+        <div class="date" id="hero-date"></div>
+        <div class="copy" id="hero-copy"></div>
+      </div>
+    </div>
+
+    <div class="yiyan">
+      <div class="yiyan-content">
+        <span class="yiyan-loading"></span>
+      </div>
+      <div class="yiyan-signature">----送给素不相识的陌生人----</div>
+    </div>
+
+    <div class="history-container">
+      <div class="history" id="history"></div>
+    </div>
+
+    <!-- 页脚 -->
+    <footer>
+      <script defer src="https://cn.vercount.one/js"></script>
+      <div style="margin-bottom: 0.5em">
+        网站总请求量：<span id="vercount_value_site_pv">🤕</span> |
+        独立访客数：<span id="vercount_value_site_uv">🤕</span>
+      </div>
+      <div style="margin-bottom: 0.5em">
+        本站已运行：<span id="running-days">计算中...</span> |
+        距离下次更新：<span id="next-update">计算中...</span>
+      </div>
+      <div style="margin-bottom: 0.5em">
+        Powered by
+        <a href="https://github.com/features/actions" target="_blank" rel="nofollow noopener noreferrer">GitHub Actions</a> |
+        <a href="https://cn.bing.com" target="_blank" rel="nofollow noopener noreferrer">Bing_CN</a> |
+        <a href="https://console.tencentcloud.com/edgeone/makers" target="_blank" rel="nofollow noopener noreferrer">EdgeOne</a>
+      </div>
+      <div>
+        项目地址:
+        <a href="https://github.com/chnbsdan/daily-image" target="_blank" rel="nofollow noopener noreferrer">daily-image</a>
+        | MIT License © <span id="year"></span> |
+        <a href="https://aoso.hangdn.com/" target="_blank" rel="nofollow noopener noreferrer">Hangdn Notes</a>
+      </div>
+      <script>
+        document.getElementById("year").textContent = new Date().getFullYear();
+        function updateTimes() {
+          const startDate = new Date('2026-4-20');
+          const now = new Date();
+          const runningDays = Math.floor((now - startDate) / (1000 * 60 * 60 * 24));
+          document.getElementById("running-days").textContent = runningDays + " 天";
+          const tomorrow = new Date(now);
+          tomorrow.setDate(tomorrow.getDate() + (now.getHours() >= 12 ? 1 : 0));
+          tomorrow.setHours(12, 0, 0, 0);
+          let diff = tomorrow - now;
+          const hours = Math.floor(diff / (1000 * 60 * 60));
+          diff -= hours * 1000 * 60 * 60;
+          const minutes = Math.floor(diff / (1000 * 60));
+          diff -= minutes * 1000 * 60;
+          const seconds = Math.floor(diff / 1000);
+          document.getElementById("next-update").textContent = 
+            `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+        updateTimes();
+        setInterval(updateTimes, 1000);
+      </script>
+    </footer>
+
+    <!-- 重构后的 Modal -->
+    <div class="modal" id="imageModal">
+      <!-- 关闭按钮 - 左上角 -->
+      <button class="modal-close" id="modalClose" aria-label="关闭预览">
+        <i class="fas fa-times"></i>
+      </button>
+      
+      <!-- 左右导航按钮 -->
+      <button class="modal-nav modal-nav-left" id="navLeft" aria-label="上一张">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <button class="modal-nav modal-nav-right" id="navRight" aria-label="下一张">
+        <i class="fas fa-chevron-right"></i>
+      </button>
+      
+      <div class="modal-content">
+        <img class="modal-img" id="modalImage" src="" alt="" />
+        <div class="modal-caption" id="modalCaption"></div>
+      </div>
+      
+      <div class="zoom-hint">🖱 滚动缩放 · 拖动平移</div>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        // ---- 主题切换 ----
+        const toggleBtn = document.getElementById('themeToggle');
+        const icon = toggleBtn.querySelector('i');
+        const currentTheme = localStorage.getItem('theme') || 
+                            (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+        function setTheme(theme) {
+          document.documentElement.setAttribute('data-theme', theme);
+          localStorage.setItem('theme', theme);
+          icon.className = theme === 'light' ? 'fas fa-sun' : 'fas fa-moon';
+        }
+        setTheme(currentTheme);
+        toggleBtn.addEventListener('click', () => {
+          const current = document.documentElement.getAttribute('data-theme');
+          setTheme(current === 'light' ? 'dark' : 'light');
+        });
+
+        // ---- 图片数据 ----
+        let imageData = [];
+        let currentIndex = 0;
+
+        // ---- Modal 元素 ----
+        const modal = document.getElementById("imageModal");
+        const modalImage = document.getElementById("modalImage");
+        const modalCaption = document.getElementById("modalCaption");
+        const modalClose = document.getElementById("modalClose");
+        const navLeft = document.getElementById("navLeft");
+        const navRight = document.getElementById("navRight");
+
+        // ---- 缩放与拖动状态 ----
+        let scale = 1;
+        let translateX = 0;
+        let translateY = 0;
+        let isDragging = false;
+        let startX = 0;
+        let startY = 0;
+        let lastTranslateX = 0;
+        let lastTranslateY = 0;
+
+        function updateTransform() {
+          modalImage.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+        }
+
+        function resetTransform() {
+          scale = 1;
+          translateX = 0;
+          translateY = 0;
+          lastTranslateX = 0;
+          lastTranslateY = 0;
+          updateTransform();
+        }
+
+        // ---- 打开 Modal ----
+        function openModal(index) {
+          if (!imageData.length) return;
+          currentIndex = (index + imageData.length) % imageData.length;
+          const item = imageData[currentIndex];
+          modalImage.src = item.path;
+          modalImage.alt = item.date;
+          modalCaption.textContent = `${item.date} - ${item.copyright}`;
+          resetTransform();
+          modal.style.display = "flex";
+          void modal.offsetWidth;
+          modal.classList.add("active");
+        }
+
+        function closeModal() {
+          modal.classList.remove("active");
+          setTimeout(() => { modal.style.display = "none"; }, 300);
+          resetTransform();
+        }
+
+        function goTo(delta) {
+          const newIndex = (currentIndex + delta + imageData.length) % imageData.length;
+          openModal(newIndex);
+        }
+
+        // ---- 事件绑定 ----
+        modalClose.addEventListener("click", closeModal);
+        modal.addEventListener("click", (e) => {
+          if (e.target === modal) closeModal();
+        });
+        document.addEventListener("keydown", (e) => {
+          if (!modal.classList.contains("active")) return;
+          if (e.key === "Escape") closeModal();
+          if (e.key === "ArrowLeft") goTo(-1);
+          if (e.key === "ArrowRight") goTo(1);
+        });
+        navLeft.addEventListener("click", (e) => { e.stopPropagation(); goTo(-1); });
+        navRight.addEventListener("click", (e) => { e.stopPropagation(); goTo(1); });
+
+        // ---- 鼠标滚轮缩放 ----
+        modalImage.addEventListener('wheel', (e) => {
+          e.preventDefault();
+          const delta = e.deltaY > 0 ? -0.1 : 0.1;
+          const newScale = Math.min(Math.max(scale + delta, 0.5), 5);
+          scale = newScale;
+          if (scale === 1.0) {
+            translateX = 0;
+            translateY = 0;
+            lastTranslateX = 0;
+            lastTranslateY = 0;
+          }
+          updateTransform();
+        }, { passive: false });
+
+        // ---- 鼠标拖动平移 ----
+        modalImage.addEventListener('mousedown', (e) => {
+          if (scale <= 1.0) return;
+          isDragging = true;
+          startX = e.clientX;
+          startY = e.clientY;
+          lastTranslateX = translateX;
+          lastTranslateY = translateY;
+          modalImage.style.cursor = 'grabbing';
+        });
+
+        window.addEventListener('mousemove', (e) => {
+          if (!isDragging) return;
+          const dx = e.clientX - startX;
+          const dy = e.clientY - startY;
+          translateX = lastTranslateX + dx;
+          translateY = lastTranslateY + dy;
+          updateTransform();
+        });
+
+        window.addEventListener('mouseup', () => {
+          if (isDragging) {
+            isDragging = false;
+            modalImage.style.cursor = 'grab';
+          }
+        });
+
+        // ---- 触摸支持 ----
+        let touchStartX = 0, touchStartY = 0;
+        let touchLastX = 0, touchLastY = 0;
+        let touchDist = 0;
+
+        modalImage.addEventListener('touchstart', (e) => {
+          if (e.touches.length === 1 && scale > 1.0) {
+            const touch = e.touches[0];
+            touchStartX = touch.clientX;
+            touchStartY = touch.clientY;
+            touchLastX = translateX;
+            touchLastY = translateY;
+            isDragging = true;
+          } else if (e.touches.length === 2) {
+            const t1 = e.touches[0];
+            const t2 = e.touches[1];
+            touchDist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+          }
+        }, { passive: true });
+
+        modalImage.addEventListener('touchmove', (e) => {
+          if (e.touches.length === 1 && isDragging && scale > 1.0) {
+            const touch = e.touches[0];
+            const dx = touch.clientX - touchStartX;
+            const dy = touch.clientY - touchStartY;
+            translateX = touchLastX + dx;
+            translateY = touchLastY + dy;
+            updateTransform();
+          } else if (e.touches.length === 2) {
+            const t1 = e.touches[0];
+            const t2 = e.touches[1];
+            const newDist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+            const delta = (newDist - touchDist) / 200;
+            const newScale = Math.min(Math.max(scale + delta, 0.5), 5);
+            scale = newScale;
+            if (scale === 1.0) {
+              translateX = 0;
+              translateY = 0;
+              touchLastX = 0;
+              touchLastY = 0;
+            }
+            touchDist = newDist;
+            updateTransform();
+          }
+        }, { passive: true });
+
+        modalImage.addEventListener('touchend', () => {
+          isDragging = false;
+        }, { passive: true });
+
+        // ---- 加载图片列表 ----
+        function loadImage(imgElement, src) {
+          const loader = new Image();
+          loader.src = src;
+          loader.onload = () => {
+            imgElement.src = src;
+            imgElement.classList.add("img-loaded");
+          };
+          loader.onerror = () => {
+            imgElement.classList.remove("img-loading");
+            console.error("图片加载失败:", src);
+          };
+        }
+
+        // ---- 获取一言 ----
+        const yiyanContent = document.querySelector('.yiyan-content');
+        fetch('https://v2.xxapi.cn/api/yiyan?type=hitokoto')
+          .then(response => response.json())
+          .then(data => {
+            if (data.code === 200 && data.data) {
+              yiyanContent.innerHTML = `<span style="opacity: 0; transition: opacity 1s ease;">${data.data}</span>`;
+              setTimeout(() => {
+                const textSpan = yiyanContent.querySelector('span');
+                if (textSpan) textSpan.style.opacity = '1';
+              }, 100);
+            } else {
+              yiyanContent.textContent = '生活，是一场无法回放的电影，我们都是自己的导演。';
+            }
+          })
+          .catch(() => {
+            yiyanContent.textContent = '生活，是一场无法回放的电影，我们都是自己的导演。';
+          });
+
+        // ---- 加载图片数据 ----
+        fetch("/picture/index.json")
+          .then((res) => res.json())
+          .then((data) => {
+            if (!Array.isArray(data) || data.length === 0) {
+              console.error("index.json 内容不合法");
+              return;
+            }
+            imageData = data;
+            const today = data[0];
+            const heroImg = document.getElementById("hero-img");
+            document.getElementById("hero-date").textContent = today.date;
+            document.getElementById("hero-copy").textContent = today.copyright;
+            loadImage(heroImg, today.path);
+
+            const historyEl = document.getElementById("history");
+            data.forEach((item, index) => {
+              setTimeout(() => {
+                const card = document.createElement("div");
+                card.className = "card";
+                card.style.opacity = "0";
+                card.style.transform = "translateY(50px)";
+                card.style.transition = "opacity 1.0s cubic-bezier(.4,2,.6,1), transform 1.0s cubic-bezier(.4,2,.6,1)";
+
+                const img = document.createElement("img");
+                img.alt = item.date;
+                img.className = "img-loading";
+                img.src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMmQyZDJkIi8+PC9zdmc+";
+
+                const dateLabel = document.createElement("div");
+                dateLabel.className = "date-label";
+                dateLabel.textContent = item.date;
+
+                const copyText = document.createElement("div");
+                copyText.className = "copy-text";
+                copyText.textContent = item.copyright;
+
+                card.appendChild(img);
+                card.appendChild(dateLabel);
+                card.appendChild(copyText);
+                historyEl.appendChild(card);
+
+                loadImage(img, item.path);
+
+                card.addEventListener("click", () => {
+                  openModal(index);
+                });
+
+                setTimeout(() => {
+                  card.style.opacity = "1";
+                  card.style.transform = "translateY(0)";
+                }, 50);
+              }, index * 80);
+            });
+          })
+          .catch((err) => console.error("加载 index.json 失败", err));
+      });
+    </script>
+  </body>
+</html>
